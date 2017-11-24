@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106740722-3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-106740722-3');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta charset="UTF-8">
+  <title> .. 主持人專區 .. </title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.1.1/bootstrap-social.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/magnific-popup.min.css" />
+  <style>
+  .white-popup {
+    position: relative;
+    background: #FFF;
+    padding: 20px;
+    width: auto;
+    max-width: 500px;
+    margin: 20px auto;
+  }
+  </style>
+</head>
+<body>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-10">
+        <h3 class="text-center">
+          Quick Quiz -- 我問你答
+        </h3>
+      </div>
+      <div class="col-md-2">
+          <h3 class="text-center">
+              Quick Quiz -- 我問你答
+          </h3>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">
+        <button id="newgame" type="button" class="btn btn-primary btn-lg btn-block">
+          新題目
+        </button>
+      </div>
+      <div class="col-md-8">
+        <h3 id="title" class="text-center text-success">
+        </h3>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">
+        <h3 id="winner" class="text-center text-danger">
+        </h3>
+      </div>
+      <div class="col-md-8">
+        <h3 id="answer" class="text-center text-primary">
+        </h3>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.blockUI/2.70/jquery.blockUI.js" integrity="sha256-oQaw+JJuUcJQ9QVYMcFnPxICDT+hv8+kuxT2FNzTGhc=" crossorigin="anonymous"></script>
+  <script src="/__/firebase/4.6.2/firebase-app.js"></script>
+  <script src="/__/firebase/4.6.2/firebase-auth.js"></script>
+  <script src="/__/firebase/4.6.2/firebase-database.js"></script>
+  <script src="/__/firebase/init.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/timer.jquery/0.7.0/timer.jquery.js"></script>
+  <script src="/jquery.square.js"></script>
+  <script>
+    var name = null;
+    var curGame = null;
+
+    firebase.auth().onAuthStateChanged(function(user) {
+      var admin = ['BTKOBzpjdsfLMyzx0xuGTdkMLa52'];
+      if (user && admin.indexOf(user.uid) != -1) {
+        name = user.displayName;
+      } else {
+        name = null;
+        $.magnificPopup.open({
+          items: {
+            src: '<div id="test-popup" class="white-popup"><p>請使用以下方式登入</p> \
+                  <a onclick="loginGoogle();" class="btn btn-block btn-social btn-lg btn-google"> \
+                  <span class="fa fa-google"></span> Sign in with Google</a> \
+                  <a onclick="loginGithub();" id="github" class="btn btn-block btn-social btn-lg btn-github"> \
+                  <span class="fa fa-github"></span> Sign in with GitHub \
+                  </a></div>',
+            type: 'inline'
+          }
+        }, 0);
+      }
+    });
+
+    function login(provider) {
+      firebase.auth().signInWithPopup(provider).then(function(result) {
+        $.magnificPopup.close();
+        location.reload();
+      }).catch(function(error) {
+        $.magnificPopup.close();
+        alert('authentication cancelled or error');
+      });
+    }
+
+    function loginGoogle() {
+      login(new firebase.auth.GoogleAuthProvider());
+    }
+
+    function loginGithub() {
+      login(new firebase.auth.GithubAuthProvider());
+    }
+    
+    firebase.database().ref('/session').on('value', function(snapshot) {
+      if (null == name) {
+        return;
+      }
+
+      var data = snapshot.val();
+      var nowDate = new Date();
+      var expired = new Date(snapshot.val().expired);
+
+      $("#title").html("<h1>題目：" + data.title + "</h1>");
+    });
+
+    firebase.database().ref('/session').on('value', function(snapshot) {
+      if (null == name) {
+        return;
+      }
+
+      var data = snapshot.val();
+      var nowDate = new Date();
+      var expired = new Date(snapshot.val().expired);
+
+      // TODO: handle expire
+
+      $("#title").html("<h1>題目：" + data.title + "</h1>");
+      curGame = data.quiz_id;
+      $.unblockUI();
+    });
+
+    firebase.database().ref('/result').on('value', function(snapshot) {
+      var data = snapshot.val();
+        
+      if (curGame != data.quiz_id) {
+        return; // old result ?
+      }
+      $("#winner").html("<h1>Winner：" + data.winner_name + "</h1>");
+      $("#answer").html("<h1>正解：" + data.answer + "</h1>");
+      $.unblockUI();
+      $('#divId').timer('remove');
+    });
+
+    $("#newgame").on('click', (event) => {
+        if (null == firebase.auth().currentUser) {
+            return;
+        }
+        firebase.auth().currentUser.getIdToken().then(function(token) {
+          $.blockUI({ message: '<h2>出題中 ...</h2>' });
+          $.ajax({
+            'url': '/newgame',
+            'type': 'GET',
+            processData: false,
+            beforeSend: function(request) {
+              request.setRequestHeader("Authorization", "Bearer " + token);
+            },
+          }).done(() => {
+            $("#winner").html("");
+            $("#answer").html("");
+            $('#divId').timer({
+              duration: '5s',
+              callback: function() {
+                $("#answer").html("<h1>沒人答對 ...</h1>");
+              }
+            });
+            $.unblockUI();
+          }).error(() => {
+            $("#winner").html("");
+            $("#answer").html("");
+            $.unblockUI();
+          })
+        });
+    });
+
+  </script>  
+</body>

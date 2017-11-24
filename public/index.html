@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106740722-3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-106740722-3');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta charset="UTF-8">
+  <title>Quick Quiz</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.1.1/bootstrap-social.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/magnific-popup.min.css" />
+  <style>
+  .white-popup {
+    position: relative;
+    background: #FFF;
+    padding: 20px;
+    width: auto;
+    max-width: 500px;
+    margin: 20px auto;
+  }
+  .square {
+    background:rgba(52,188,157, 0.5);
+  }
+  .square-clicked {
+    background:rgba(168, 84, 119, 0.76);
+  }
+  .inner {
+    padding:5px;
+    border:2px solid #fafafa;
+    vertical-align:middle;
+  }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="row">
+        <div class="main-content col-sm-4"><h2 id="info" onClick="firebase.auth().signOut(); location.reload();"></h2></div>
+        <div class="main-content col-sm-4"><h2 id="quizid">等待題目中 ...</h2></div>
+        <div class="main-content col-sm-4"><h2 id="countdown"></h2></div>
+    </div>
+    <div id="boxOuter">
+    </div>
+  </div>
+  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script> 
+  <script src="/__/firebase/4.6.2/firebase-app.js"></script>
+  <script src="/__/firebase/4.6.2/firebase-auth.js"></script>
+  <script src="/__/firebase/4.6.2/firebase-database.js"></script>
+  <script src="/__/firebase/init.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"></script>
+  <script src="/jquery.square.js"></script>
+  <script>
+    var uid = null;
+    var name = null;
+    var quizid = null;
+    var has_Answered = false;
+
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        uid = user.uid;
+        name = user.displayName;
+        token = user.token;
+        $("#info").text('參賽者：' + name);
+      } else {
+        $.magnificPopup.open({
+          items: {
+            src: '<div id="test-popup" class="white-popup"><p>請使用以下方式登入</p> \
+                  <a onclick="loginGoogle();" class="btn btn-block btn-social btn-lg btn-google"> \
+                  <span class="fa fa-google"></span> Sign in with Google</a> \
+                  <a onclick="loginGithub();" id="github" class="btn btn-block btn-social btn-lg btn-github"> \
+                  <span class="fa fa-github"></span> Sign in with GitHub \
+                  </a></div>',
+            type: 'inline'
+          }
+        }, 0);
+      }
+    });
+
+    function login(provider) {
+      firebase.auth().signInWithPopup(provider).then(function(result) {
+        var user = result.user;
+        uid = user.uid;
+        name = user.displayName;
+        $.magnificPopup.close();
+        location.reload();
+      }).catch(function(error) {
+        $.magnificPopup.close();
+        alert(JSON.stringify(error));
+      });
+    }
+
+    function loginGoogle() {
+      login(new firebase.auth.GoogleAuthProvider());
+    }
+
+    function loginGithub() {
+      login(new firebase.auth.GithubAuthProvider());
+    }
+    
+    var square = null;
+    var now = null;
+
+    function resizeHandler(caller) {
+        var cur = null;
+        var width = $(window).width();
+    
+        if(width < 640) {
+            cur = 'sp';
+        } else {
+            cur = 'pc';
+        }
+
+        now = cur;
+    
+        if(square) {
+            square.destroy();
+            square = null;
+        }
+
+        switch(now) {
+            case 'pc':
+                //square = $("#boxOuter").square( { size:200, space:2, } );
+                square = $("#boxOuter").square({
+                  target: "square",
+                  inner: ".inner",
+                  scaleSplit: "_",
+                  size: 400,
+                  space: 2,
+                  speed: 700,
+                  duration: 500,
+                });
+                break;
+            case 'sp':
+                square = $("#boxOuter").square({
+                  target: "square",
+                  inner: ".inner",
+                  scaleSplit: "_",
+                  size: '50%',
+                  space: '2%',
+                  speed: 700,
+                  duration: 500,
+                });
+                break;
+        }
+    }
+    $(window).on('resize', resizeHandler);
+    resizeHandler();
+
+    firebase.database().ref('/session').on('value', function(snapshot) {
+      if (null == uid || null == name) {
+        return;
+      }
+
+      var data = snapshot.val();
+      var nowDate = new Date();
+      var expired = new Date(snapshot.val().expired);
+      
+      if (undefined === data.options || 0 == data.options.size) {
+        alert('no option!');
+        return;
+      }
+
+      if (true == data.has_winner || nowDate > expired) {
+        // the party is over and/or there's a winner
+        return;
+      }
+
+      $("#quizid").text("");
+      quizid = data.quiz_id;
+
+      var options = [];
+      var tmp = '<div class="square" data-value="%OPTIONID%"><div class="inner"><h2>%TEXT%</h2></div></div>';
+      $.each(data.options, (key, value) => {
+        options.push(tmp.replace(/%OPTIONID%/g, key).replace(/%TEXT%/g, value));
+      })
+      
+      options.sort(function() { return 0.5 - Math.random() });
+
+      $("#boxOuter").empty().append(options.join(''));
+      square.destroy();
+      square = null;
+      has_Answered = false;
+
+      resizeHandler();
+
+      // handle the click(answer) event
+      $('.square').on('click', function() {
+        if (true == has_Answered) {
+          return;
+        }
+
+        $(this).removeClass('square').addClass('square-clicked');
+        // switch to answered mode, no more answer allowed
+        has_Answered = true;
+        $("#countdown").text('');
+
+        var answer = $(this).data('value');
+        firebase.auth().currentUser.getIdToken().then(function(token) {
+          var data = {quiz_id: quizid, answer: answer};
+          $.ajax({
+            url: '/answer',
+            data: JSON.stringify(data),
+            type: 'POST',
+            dataType: "json",
+            contentType: "application/json",
+            processData: false,
+            beforeSend: function(request) {
+              request.setRequestHeader("Authorization", "Bearer " + token);
+            },
+          }).done(function(msg) {
+          }).error(function (error) {
+          });
+        });
+      });
+    });
+  </script>  
+</body>
